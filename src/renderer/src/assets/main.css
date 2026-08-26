@@ -1,0 +1,76 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+
+@theme {
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+
+  --color-accent-50: #f0fdf4;
+  --color-accent-100: #dcfce7;
+  --color-accent-200: #bbf7d0;
+  --color-accent-300: #86efac;
+  --color-accent-400: #4ade80;
+  --color-accent-500: #22c55e;
+  --color-accent-600: #16a34a;
+  --color-accent-700: #15803d;
+  --color-accent-800: #166534;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-[#f4f5f7] font-sans text-zinc-900 antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* Çerçevesiz pencerede sürüklenebilir/sürüklenemez bölgeler */
+.app-drag {
+  -webkit-app-region: drag;
+}
+
+.app-no-drag {
+  -webkit-app-region: no-drag;
+}
+
+/* RAM slider — dolgu rengi inline linear-gradient ile verilir */
+.ram-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  outline: none;
+  cursor: pointer;
+}
+
+.ram-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 9999px;
+  background: #fff;
+  border: 3px solid var(--color-accent-600);
+  box-shadow: 0 1px 4px rgb(16 24 40 / 0.2);
+  transition: transform 0.15s ease;
+}
+
+.ram-slider:not(:disabled)::-webkit-slider-thumb:hover {
+  transform: scale(1.15);
+}
+
+/* Ayarlardaki metin girişleri */
+.settings-input {
+  @apply w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition-colors;
+}
+
+.settings-input:focus {
+  @apply border-accent-500 ring-2 ring-accent-500/15;
+}
+
+.settings-input::placeholder {
+  @apply text-zinc-400;
+}
