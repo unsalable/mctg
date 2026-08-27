@@ -2,14 +2,6 @@
 
 Modern, animasyonlu Minecraft launcher. Electron + React + TypeScript ile geliştirilmektedir.
 
-## Özellikler (yol haritası)
-
-- [x] Adım 1 — Microsoft OAuth girişi + UI iskeleti (3D skin görüntüleyici, OYNA butonu, özel titlebar)
-- [x] Adım 2 — Ayarlar: RAM slider (2-16 GB, varsayılan 4 GB), kalıcı depolama
-- [x] Adım 3 — Otomatik Java yönetimi + oyun başlatma (Minecraft 26.2, IPv4 sabitlenmiş indirmeler, otomatik Java 25 kurulumu)
-- [x] Adım 4 — GitHub tabanlı profil sistemi ve mod senkronizasyonu (anti-cheat, sıfır konfigürasyon) + otomatik Fabric Loader kurulumu — bkz. [docs/MOD_REPO.md](docs/MOD_REPO.md)
-- [x] Adım 5 — Cila + paketleme (electron-builder)
-
 ## Teknoloji Yığını
 
 - **Çatı:** Electron + electron-vite
