@@ -1,12 +1,12 @@
 import os from 'os'
-import { VANILLA_PROFILE_ID } from '../../shared/constants'
+import { MOD_REPO, VANILLA_PROFILE_ID } from '../../shared/constants'
 import type { LauncherSettings, SettingsSnapshot } from '../../shared/types'
 import { store } from './storage'
 
 const SETTINGS_KEY = 'settings'
 const DEFAULT_SETTINGS: LauncherSettings = {
   ramGb: 4,
-  modRepo: '',
+  modRepo: MOD_REPO,
   selectedProfileId: VANILLA_PROFILE_ID
 }
 
@@ -26,7 +26,7 @@ class SettingsService {
     const saved = store.get<Partial<LauncherSettings>>(SETTINGS_KEY, {})
     return {
       ramGb: clampRam(saved.ramGb ?? DEFAULT_SETTINGS.ramGb),
-      modRepo: cleanString(saved.modRepo, DEFAULT_SETTINGS.modRepo, 200),
+      modRepo: MOD_REPO,
       selectedProfileId: cleanString(
         saved.selectedProfileId,
         DEFAULT_SETTINGS.selectedProfileId,
@@ -39,8 +39,7 @@ class SettingsService {
     const current = this.get()
     const next: LauncherSettings = {
       ramGb: patch.ramGb !== undefined ? clampRam(patch.ramGb) : current.ramGb,
-      modRepo:
-        patch.modRepo !== undefined ? cleanString(patch.modRepo, current.modRepo, 200) : current.modRepo,
+      modRepo: MOD_REPO,
       selectedProfileId:
         patch.selectedProfileId !== undefined
           ? cleanString(patch.selectedProfileId, current.selectedProfileId, 64)

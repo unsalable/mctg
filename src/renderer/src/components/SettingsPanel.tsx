@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { Coffee, FolderGit2, MemoryStick, X } from 'lucide-react'
+import { MOD_REPO } from '../../../shared/constants'
 import { useAuthStore } from '../stores/useAuthStore'
 import { useProfileStore } from '../stores/useProfileStore'
 import { useSettingsStore } from '../stores/useSettingsStore'
@@ -61,9 +62,6 @@ function RamSection() {
 }
 
 function ModRepoSection() {
-  const modRepo = useSettingsStore((s) => s.modRepo)
-  const loaded = useSettingsStore((s) => s.loaded)
-  const setModRepo = useSettingsStore((s) => s.setModRepo)
   const warning = useProfileStore((s) => s.warning)
 
   return (
@@ -73,30 +71,19 @@ function ModRepoSection() {
         <div>
           <p className="text-sm font-medium text-zinc-900">Mod Deposu (GitHub)</p>
           <p className="mt-0.5 text-xs text-zinc-500">
-            Profiller ve anti-hile mod senkronu bu repodan yönetilir
+            Profiller ve anti-hile mod senkronu bu repodan y�netilir
           </p>
         </div>
       </div>
 
-      <input
-        type="text"
-        spellCheck={false}
-        disabled={!loaded}
-        value={modRepo}
-        onChange={(e) => setModRepo(e.target.value)}
-        placeholder="kullanici/repo veya github.com adresi"
-        className="settings-input mt-3 disabled:opacity-50"
-      />
-      <p className="mt-2 text-[11px] leading-relaxed text-zinc-400">
-        Repo kökünde <span className="font-mono">profiles.json</span> bulunmalı.{' '}
-        <span className="font-mono">kullanici/repo@dal</span> yazarak dal seçebilirsin. Boş
-        bırakılırsa yalnızca Vanilla profili görünür.
-      </p>
+      <div className="mt-3 rounded-lg border border-zinc-200 bg-zinc-50 px-3 py-2">
+        <p className="font-mono text-sm text-zinc-700">{MOD_REPO}</p>
+        <p className="mt-1 text-[11px] text-zinc-500">Profil deposu sabittir.</p>
+      </div>
       {warning && <p className="mt-1.5 text-[11px] text-amber-600">{warning}</p>}
     </div>
   )
 }
-
 function JavaInfoSection() {
   return (
     <div className="flex items-start gap-3 rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
