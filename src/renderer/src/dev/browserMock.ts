@@ -1,4 +1,4 @@
-import { VANILLA_PROFILE, VANILLA_PROFILE_ID } from '../../../shared/constants'
+import { MOD_REPO, VANILLA_PROFILE, VANILLA_PROFILE_ID } from '../../../shared/constants'
 import type {
   GameExitInfo,
   GameProgress,
@@ -15,7 +15,7 @@ import type {
 export function installBrowserMock(): void {
   const settings: LauncherSettings = {
     ramGb: 4,
-    modRepo: 'ornek/mod-repo',
+    modRepo: MOD_REPO,
     selectedProfileId: VANILLA_PROFILE_ID
   }
   const progressListeners = new Set<(progress: GameProgress) => void>()
@@ -105,7 +105,7 @@ export function installBrowserMock(): void {
               loader: 'fabric'
             }
           ],
-          repo: 'ornek/mod-repo',
+          repo: MOD_REPO,
           error: null
         }
       }

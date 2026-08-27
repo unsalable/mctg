@@ -17,7 +17,7 @@ export default function TitleBar() {
         {loggedIn && (
           <button
             title="Ayarlar"
-            onClick={() => setSettingsOpen(true)}
+            onClick={() => setSettingsOpen(!useUiStore.getState().settingsOpen)}
             className="flex h-full w-12 items-center justify-center text-zinc-500 transition-colors hover:bg-zinc-900/[0.06] hover:text-zinc-800"
           >
             <Settings size={16} />
