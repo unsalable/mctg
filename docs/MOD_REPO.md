@@ -1,80 +1,92 @@
-# Mod Deposu Şeması (Sıfır Konfigürasyon)
+# Mod Deposu
 
-Launcher, mod paketlerini herkese açık bir GitHub reposundan yönetir. **Manifest
-üretmek, hash hesaplamak veya script çalıştırmak gerekmez** — dosya listesi ve
-hash'ler doğrudan GitHub API'sinden okunur. Tek yapman gereken, mod dosyalarını
-repoya yüklemek.
+Launcher, mod profillerini ve mod dosyalarını **MCTG sitesinden** okur. Bu
+doküman eskiden bir GitHub reposu şemasını anlatıyordu; o sistem emekli edildi.
 
-## Repo yapısı
-
-Repodaki **her üst düzey klasör bir profildir**; içindeki dosyalar o profilin
-paketidir:
+## Nasıl çalışır
 
 ```
-varsayilan/
-  sodium-fabric-0.9.1+mc26.2.jar
-  lithium-fabric-0.25.3+mc26.2.jar
-  ...
-unsalable/
-  iris-fabric-1.11.2+mc26.2.jar
-  ...
+üye siteye .jar yükler  →  yönetici onaylar  →  havuza girer
+                                                  ↓
+                          üye profiline ekler  →  launcher'a iner
 ```
 
-- Klasör adı = profil kimliği (küçük harf, rakam, tire, alt çizgi).
-- Klasörün doğrudan içindeki dosyalar oyunun `mods/` klasörüne eşitlenir.
-- İstersen alt klasörler de kullanabilirsin: `varsayilan/config/...`,
-  `varsayilan/resourcepacks/...` gibi bilinen klasörler (`mods`, `config`,
-  `resourcepacks`, `shaderpacks`, `datapacks`) instance köküne birebir kopyalanır.
+Launcher, Profiller sekmesinde ve her **OYNA** tıklamasında siteden şunları
+ister:
 
-## Loader tespiti (Fabric)
+| Uç | Ne döner |
+| --- | --- |
+| `GET /api/launcher/v1/profiles` | Resmî profil + kullanıcının kendi profilleri + onaylı herkese açık profiller |
+| `GET /api/launcher/v1/profiles/:id/manifest` | `{ path, sha256, size }` girdileri + uyarılar |
+| `GET /api/launcher/v1/files/:sha256` | Dosyanın kendisi (Range destekli) |
 
-Klasördeki dosya adlarında "fabric" geçiyorsa profil **Fabric** olarak işaretlenir;
-launcher, oyunu başlatmadan önce uygun Fabric Loader sürümünü otomatik kurar.
-Bu tespiti `profiles.json` ile elle de belirleyebilirsin.
+Üçü de onaylı bir site hesabı ister; jeton `SiteService` içinde durur.
 
-## İsteğe bağlı: profiles.json
-
-Görünen ad, açıklama, Minecraft sürümü veya loader'ı özelleştirmek istersen repo
-köküne bir `profiles.json` ekleyebilirsin. Tamamen isteğe bağlıdır:
-
-```json
-[
-  {
-    "id": "varsayilan",
-    "name": "Varsayılan Paket",
-    "description": "Sunucunun zorunlu modları",
-    "mcVersion": "26.2",
-    "loader": "fabric"
-  },
-  {
-    "id": "unsalable",
-    "name": "Unsalable Paketi",
-    "description": "Ek görsel modlar"
-  }
-]
-```
-
-Belirtilmeyen alanlar için varsayılanlar kullanılır: ad = klasör adı,
-mcVersion = 26.2, loader = otomatik tespit.
-
-## Anti-hile senkronizasyonu nasıl çalışır?
+## Senkron nasıl çalışır?
 
 Oyun her başlatıldığında (Vanilla profili hariç):
 
-1. Reponun dosya ağacı GitHub API'sinden çekilir (`git/trees`, hash'ler dahil).
-2. Yerel `mods/` klasöründeki her dosyanın **git blob hash'i**
-   (`sha1("blob <boyut>\0" + içerik)`) hesaplanır ve repodakiyle karşılaştırılır.
-3. Listede olmayan veya hash'i uyuşmayan her dosya **silinir** (hile/değişiklik koruması).
-4. Eksik dosyalar `raw.githubusercontent.com` üzerinden indirilir ve indirme
-   sonrası hash tekrar doğrulanır.
-5. `mods/` dışındaki dosyalar (ör. `config/`) silinmez; yalnızca eksik/bozuksa
-   repodan tamamlanır.
+1. Profilin manifesti siteden çekilir.
+2. Yerel `mods/` klasöründeki her dosyanın **sha256**'sı hesaplanır ve
+   manifesttekiyle karşılaştırılır.
+3. Listede olmayan veya hash'i uyuşmayan her dosya **silinir**.
+4. Eksik dosyalar indirilir ve indirme sonrası hash tekrar doğrulanır.
+5. `mods/` dışındaki dosyalar (ör. `config/`) silinmez; yalnızca eksik ya da
+   bozuksa tamamlanır.
+
+Bu bir bütünlük özelliğidir, güvenlik sınırı değil: kararlı bir oyuncu başka
+bir launcher çalıştırır. Hileyi sunucudan uzak tutmak sunucu tarafı bir
+eklentinin işi.
+
+## İstemci tarafı doğrulama
+
+Sunucu indirme adresini **göndermez**; launcher onu kendi sabit
+`SITE_API_BASE`'inden üretir. İndirme isteklerine `Authorization` başlığı
+eklendiği için sunucunun verdiği mutlak bir adres jeton sızdırma vektörü
+olurdu.
+
+Sunucunun söylediği hedef yol da istemcide ayrıca doğrulanır
+(`mods`, `config`, `resourcepacks`, `shaderpacks`, `datapacks` ile başlamalı,
+`..` ve mutlak yol yok): launcher kullanıcının bilgisayarında çalışan bir
+`.exe`; uzak bir sunucuya dosyayı istediği yere yazdırma yetkisi verilmez.
+
+## Loader desteği
+
+Launcher yalnızca **Vanilla** ve **Fabric** profilleri açar. Site quilt/forge/
+neoforge da tutabildiği için böyle bir profil listelenmez; yerine Profiller
+sekmesinde uyarı gösterilir. Fabric profillerinde loader sürümü oyun
+başlatılmadan önce otomatik kurulur.
+
+## Profil kimlikleri
+
+Profil kimliği doğrudan instance klasör adı olur
+(`%APPDATA%/mctg-launcher/instances/<profileId>`) ve orada oyuncunun dünyaları
+durur. Bu yüzden kimlik **asla değişmez**: sitede profil yeniden
+adlandırılabilir, kimliği sabit kalır.
+
+## Çevrimdışı davranış
+
+Profil listesi ve manifest son başarılı hâliyle diske yazılır. Siteye
+ulaşılamazsa liste "en son bilinen" uyarısıyla gösterilir, manifest
+önbellekten okunur ve diskteki dosyalar yerel olarak doğrulanır — oyun yine
+açılır. Kısa ömürlü bellek önbelleği yoktur (o yalnızca GitHub'ın saatlik
+istek sınırı içindi), yani sitedeki bir değişiklik bir sonraki **OYNA**
+tıklamasında iner.
 
 ## Güncelleme akışı
 
-1. GitHub'da profil klasörüne yeni jar'ı yükle (veya eskisini sil).
-2. Bitti. Oyuncular bir sonraki "OYNA" tıklamasında otomatik eşitlenir.
+1. Siteden modu yükle veya profilden çıkar.
+2. Yönetici yeni modu onaylar.
+3. Bitti. Oyuncular bir sonraki **OYNA** tıklamasında eşitlenir.
 
-> Not: GitHub API'nin anonim istek sınırı IP başına saatte 60'tır. Launcher,
-> ağacı kısa süreli önbelleğe alır ve repoya ulaşılamazsa son başarılı kopyayı
-> kullanır.
+## Adres yapılandırması
+
+`src/shared/constants.ts` → `SITE_API_BASE` (`https://mctg.com.tr`).
+Geliştirmede yerel siteye bakmak için:
+
+```bash
+MCTG_API_BASE=http://localhost:8787 npm run dev
+```
+
+> Launcher kendini güncellemiyor; paketlenmiş `.exe` bu adresi kalıcı taşır.
+> Sunucu tarafında `/api/launcher/v1` sözleşmesi bu yüzden dondurulmuştur.

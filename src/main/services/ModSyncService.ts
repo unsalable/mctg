@@ -1,25 +1,33 @@
 import { download } from '@xmcl/file-transfer'
 import { createHash } from 'crypto'
 import { createReadStream } from 'fs'
-import { mkdir, readdir, rm, stat } from 'fs/promises'
+import { mkdir, readdir, rm } from 'fs/promises'
 import { dirname, join, relative, sep } from 'path'
 import type { GameProgress } from '../../shared/types'
 import { downloadDispatcher } from './downloader'
 import { profileService, type ManifestEntry } from './ProfileService'
+import { siteService } from './SiteService'
 
 type ProgressSink = (progress: GameProgress) => void
 
 /**
- * Anti-hile mod senkronizasyonu: instance'ın mods klasörü, GitHub'daki profil
- * klasörünün birebir aynası olmaya zorlanır. Karşılaştırma Git'in kendi blob
- * hash'iyle yapılır (sha1("blob <boyut>\0" + içerik)) — böylece repoya yüklenen
- * dosyaların hash'i GitHub API'sinden hazır gelir, manifest üretmek gerekmez.
- * Listede olmayan veya içeriği değiştirilmiş her dosya silinir; eksikler
- * indirilir ve indirme sonrası hash doğrulanır.
+ * Mod senkronizasyonu: instance'ın mods klasörü, sitedeki profilin birebir
+ * aynası olmaya zorlanır. Karşılaştırma dosyanın sha256'sıyla yapılır — bu
+ * aynı zamanda dosyanın sitedeki kimliği (indirme adresi de ondan üretiliyor),
+ * yani manifest ayrı bir hash alanı taşımıyor. Listede olmayan veya içeriği
+ * değiştirilmiş her dosya silinir; eksikler indirilir ve indirme sonrası hash
+ * doğrulanır.
+ *
+ * Not: bu bir bütünlük özelliği, güvenlik sınırı değil — kararlı bir oyuncu
+ * başka bir launcher çalıştırır. Hileyi sunucudan uzak tutmak sunucu tarafı
+ * bir eklentinin işi.
  */
 class ModSyncService {
   async sync(profileId: string, instanceDir: string, send: ProgressSink): Promise<void> {
-    send({ phase: 'mods', label: 'Mod listesi GitHub’dan alınıyor…', percent: null })
+    const token = siteService.accessToken
+    if (!token) throw new Error('Site oturumu bulunamadı. Çıkış yapıp yeniden giriş yap.')
+
+    send({ phase: 'mods', label: 'Mod listesi siteden alınıyor…', percent: null })
     const entries = await profileService.getManifest(profileId)
     const byPath = new Map(entries.map((e) => [e.path, e] as const))
 
@@ -34,7 +42,7 @@ class ModSyncService {
     for (const absolute of localModFiles) {
       const relPath = 'mods/' + relative(modsDir, absolute).split(sep).join('/')
       const entry = byPath.get(relPath)
-      if (entry && (await this.matches(absolute, entry.gitSha))) {
+      if (entry && (await this.matches(absolute, entry.sha256))) {
         validPaths.add(relPath)
       } else {
         await rm(absolute, { force: true })
@@ -51,7 +59,7 @@ class ModSyncService {
       if (validPaths.has(entry.path)) continue
       if (!entry.path.startsWith('mods/')) {
         const absolute = join(instanceDir, ...entry.path.split('/'))
-        if (await this.matches(absolute, entry.gitSha)) continue
+        if (await this.matches(absolute, entry.sha256)) continue
       }
       toDownload.push(entry)
     }
@@ -75,14 +83,13 @@ class ModSyncService {
         url: entry.url,
         destination,
         dispatcher: downloadDispatcher,
-        validator: {
-          validate: async (file) => {
-            const actual = await this.gitBlobSha1(file)
-            if (actual !== entry.gitSha) {
-              throw new Error(`İndirilen dosya doğrulanamadı: ${entry.path}`)
-            }
-          }
-        }
+        // Dosya ucu kimlik istiyor; adres ProfileService'te YEREL üretiliyor.
+        headers: { authorization: `Bearer ${token}` },
+        // sha256 standart bir algoritma; yerleşik doğrulayıcı yeterli.
+        validator: { algorithm: 'sha256', hash: entry.sha256 },
+        // Yarıda kalan indirme diskteki geçerli dosyayı sıfırlamasın.
+        pendingFile: `${destination}.part`,
+        expectedTotal: entry.size
       })
       downloadedBytes += entry.size
     }
@@ -111,12 +118,10 @@ class ModSyncService {
     return result
   }
 
-  /** Git blob hash'i: sha1("blob <boyut>\0" + içerik). GitHub'ın tree API'sindeki sha ile birebir aynıdır. */
-  private async gitBlobSha1(file: string): Promise<string> {
-    const { size } = await stat(file)
+  /** Dosyanın sha256'sı — manifestteki kimlikle birebir karşılaştırılır. */
+  private async sha256File(file: string): Promise<string> {
     return new Promise((resolve, reject) => {
-      const hash = createHash('sha1')
-      hash.update(`blob ${size}\0`)
+      const hash = createHash('sha256')
       const stream = createReadStream(file)
       stream.on('data', (chunk) => hash.update(chunk))
       stream.on('error', reject)
@@ -124,9 +129,9 @@ class ModSyncService {
     })
   }
 
-  private async matches(file: string, expectedGitSha: string): Promise<boolean> {
+  private async matches(file: string, expected: string): Promise<boolean> {
     try {
-      return (await this.gitBlobSha1(file)) === expectedGitSha
+      return (await this.sha256File(file)) === expected
     } catch {
       return false
     }

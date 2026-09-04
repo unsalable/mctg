@@ -13,7 +13,7 @@ export default function BootScreen() {
         animate={{ scale: [1, 1.08, 1] }}
         transition={{ duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
       />
-      <p className="text-sm text-zinc-400">Oturum denetleniyor…</p>
+      <p className="text-sm text-subtle">Oturum denetleniyor…</p>
     </motion.div>
   )
 }

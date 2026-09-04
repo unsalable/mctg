@@ -1,6 +1,9 @@
 @import 'tailwindcss';
 @import '@fontsource-variable/inter';
 
+/* Tema, <html> üzerindeki .dark sınıfıyla değişir (Ayarlar > Görünüm). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
 
@@ -13,6 +16,48 @@
   --color-accent-600: #16a34a;
   --color-accent-700: #15803d;
   --color-accent-800: #166534;
+
+  /* Anlamsal renkler — açık tema değerleri; .dark altında ezilir. */
+  --color-bg: #f4f5f7;
+  --color-surface: #ffffff;
+  --color-elevated: #fafbfc;
+  --color-line: #e4e4e7;
+  --color-fg: #18181b;
+  --color-muted: #71717a;
+  --color-subtle: #a1a1aa;
+
+  /* limelight-nav bileşeninin beklediği shadcn takma adları */
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-fg);
+  --color-card: var(--color-surface);
+  --color-secondary: var(--color-elevated);
+  --color-border: var(--color-line);
+  --color-primary: var(--color-accent-500);
+}
+
+/* Siyah tema */
+html.dark {
+  --color-bg: #000000;
+  --color-surface: #0d0d10;
+  --color-elevated: #141418;
+  --color-line: #26262c;
+  --color-fg: #fafafa;
+  --color-muted: #a1a1aa;
+  --color-subtle: #71717a;
+}
+
+:root {
+  /* limelight'ın gölge rengi doğrudan var(--primary) okur */
+  --primary: var(--color-accent-500);
+}
+
+@layer base {
+  /* Tailwind v4'te `border` sınıfının varsayılan rengi currentColor'dır; tema çizgisine sabitliyoruz. */
+  *,
+  ::after,
+  ::before {
+    border-color: var(--color-line);
+  }
 }
 
 html,
@@ -22,9 +67,12 @@ body,
 }
 
 body {
-  @apply bg-[#f4f5f7] font-sans text-zinc-900 antialiased;
+  background-color: var(--color-bg);
+  color: var(--color-fg);
+  @apply font-sans antialiased;
   overflow: hidden;
   user-select: none;
+  transition: background-color 0.25s ease, color 0.25s ease;
 }
 
 /* Çerçevesiz pencerede sürüklenebilir/sürüklenemez bölgeler */
@@ -34,6 +82,12 @@ body {
 
 .app-no-drag {
   -webkit-app-region: no-drag;
+}
+
+/* İnce, temaya uyumlu kaydırma çubuğu */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-line) transparent;
 }
 
 /* RAM slider — dolgu rengi inline linear-gradient ile verilir */
@@ -52,7 +106,7 @@ body {
   width: 18px;
   height: 18px;
   border-radius: 9999px;
-  background: #fff;
+  background: var(--color-surface);
   border: 3px solid var(--color-accent-600);
   box-shadow: 0 1px 4px rgb(16 24 40 / 0.2);
   transition: transform 0.15s ease;
@@ -62,15 +116,28 @@ body {
   transform: scale(1.15);
 }
 
-/* Ayarlardaki metin girişleri */
-.settings-input {
-  @apply w-full rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition-colors;
+/*
+ * Ayarlardaki metin girişleri.
+ *
+ * components katmanında: katmansız bırakılırsa utility sınıflarından SONRA
+ * geldiği için buradaki px-3, kullanım yerindeki pl-8/pl-9'u eziyor ve
+ * girişin soluna konan ikon placeholder metninin üstüne biniyordu.
+ */
+@layer components {
+  .settings-input {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-fg outline-none transition-colors;
+  }
+
+  .settings-input:focus {
+    @apply border-accent-500 ring-2 ring-accent-500/15;
+  }
+
+  .settings-input::placeholder {
+    @apply text-subtle;
+  }
 }
 
-.settings-input:focus {
-  @apply border-accent-500 ring-2 ring-accent-500/15;
-}
-
-.settings-input::placeholder {
-  @apply text-zinc-400;
+/* Skin/pelerin önizlemelerinde piksel netliği korunur */
+.pixelated {
+  image-rendering: pixelated;
 }

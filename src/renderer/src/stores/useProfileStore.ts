@@ -5,8 +5,7 @@ import type { ModProfile } from '../../../shared/types'
 interface ProfileState {
   profiles: ModProfile[]
   selectedId: string
-  repo: string | null
-  /** Repo erişim sorunu gibi engelleyici olmayan uyarılar. */
+  /** Siteye ulaşılamaması gibi engelleyici olmayan uyarılar. */
   warning: string | null
   loading: boolean
   loaded: boolean
@@ -17,7 +16,6 @@ interface ProfileState {
 export const useProfileStore = create<ProfileState>((set, get) => ({
   profiles: [],
   selectedId: VANILLA_PROFILE_ID,
-  repo: null,
   warning: null,
   loading: false,
   loaded: false,
@@ -34,7 +32,6 @@ export const useProfileStore = create<ProfileState>((set, get) => ({
       const stillExists = snapshot.profiles.some((p) => p.id === persisted)
       set({
         profiles: snapshot.profiles,
-        repo: snapshot.repo,
         warning: snapshot.error,
         selectedId: stillExists ? persisted : VANILLA_PROFILE_ID,
         loaded: true
