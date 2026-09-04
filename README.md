@@ -17,6 +17,7 @@ npm install        # bağımlılıkları kur
 npm run dev        # geliştirme modunda başlat
 npm run typecheck  # tip denetimi
 npm run build      # üretim derlemesi
+npm run build:win  # proje derlemesi
 ```
 
 ## Mimari
