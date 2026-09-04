@@ -11,7 +11,7 @@ Modern, animasyonlu Minecraft launcher. Electron + React + TypeScript ile geliş
 - [x] Adım 5 — Sekmeli arayüz: üst ortada limelight gezinme barı, ayrı **Profiller** ve **Sürümler** sekmeleri, **Hesap** sekmesi (skin kütüphanesi, skin/pelerin değiştirme, çıkış) ve **Ayarlar** (siyah tema + RAM)
 - [x] Adım 6 — MCTG site hesabı entegrasyonu: iki aşamalı giriş, yönetici kontrollü sürüm, sunucuya otomatik bağlanma — bkz. [Site entegrasyonu](#site-entegrasyonu)
 - [x] Adım 7 — Mod profilleri de siteden: GitHub deposu emekli edildi, profiller ve mod dosyaları `mctg.com.tr` üzerinden dağıtılıyor — bkz. [docs/MOD_REPO.md](docs/MOD_REPO.md)
-- [ ] Adım 8 — Cila + paketleme (electron-builder)
+- [x] Adım 8 — Paketleme + dağıtım: tek tıklık Windows setup'ı, GitHub Releases yayını ve otomatik güncelleme — bkz. [docs/RELEASE.md](docs/RELEASE.md)
 
 ## Site entegrasyonu
 
@@ -68,7 +68,23 @@ npm install        # bağımlılıkları kur
 npm run dev        # geliştirme modunda başlat
 npm run typecheck  # tip denetimi
 npm run build      # üretim derlemesi
+npm run package    # Windows setup dosyası üret (dist/, GitHub'a göndermez)
 ```
+
+## Sürüm çıkarma ve dağıtım
+
+Sürümü yükselt ve etiketi push et; GitHub Actions derleyip setup dosyasını
+Releases'a yükler, kurulu launcher'lar da kendini oradan günceller.
+
+```bash
+npm version patch && git push --follow-tags
+```
+
+İnsanlara verilecek bağlantı (hiç değişmez, hep son sürümü indirir):
+<https://github.com/unsalable/mctg/releases/latest/download/MCTG-Launcher-Setup.exe>
+
+Ayrıntı (yerel paketleme, imzalama uyarısı, otomatik güncellemenin işleyişi):
+[docs/RELEASE.md](docs/RELEASE.md).
 
 ## Mimari
 

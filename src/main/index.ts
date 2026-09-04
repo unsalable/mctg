@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
 import { serverStatusService } from './services/ServerStatusService'
+import { updateService } from './services/UpdateService'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -45,6 +46,7 @@ app.whenReady().then(() => {
   registerIpc()
   createWindow()
   serverStatusService.start()
+  updateService.start()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

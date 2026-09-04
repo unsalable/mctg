@@ -1,0 +1,44 @@
+name: Release
+
+# v ile başlayan bir etiket push edildiğinde (örn. v0.2.0) launcher derlenir,
+# setup dosyası ve latest.yml GitHub Releases'a yüklenir. Sekmeden elle de
+# çalıştırılabilir (workflow_dispatch).
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Bağımlılıklar
+        run: npm ci
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Derle ve GitHub Releases'a yayınla
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npm run release
+
+      - name: Setup dosyasını iş akışına da ekle
+        uses: actions/upload-artifact@v4
+        with:
+          name: mctg-launcher-setup
+          path: |
+            dist/*.exe
+            dist/latest.yml
