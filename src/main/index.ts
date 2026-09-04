@@ -1,6 +1,7 @@
 import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'path'
 import { registerIpc } from './ipc'
+import { serverStatusService } from './services/ServerStatusService'
 
 function createWindow(): void {
   const win = new BrowserWindow({
@@ -22,6 +23,10 @@ function createWindow(): void {
 
   win.on('ready-to-show', () => win.show())
 
+  // Launcher açılır açılmaz MCTG sunucusuna bağlanmayı dener; başarısız
+  // olursa kendi kendine tekrar dener (bkz. ServerStatusService).
+  serverStatusService.watch(win)
+
   // Dış bağlantılar uygulama içinde değil, varsayılan tarayıcıda açılır.
   win.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)
@@ -39,6 +44,7 @@ app.whenReady().then(() => {
   app.setAppUserModelId('com.mctg.launcher')
   registerIpc()
   createWindow()
+  serverStatusService.start()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()

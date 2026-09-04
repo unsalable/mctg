@@ -1,13 +1,18 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron'
 import type {
+  AccountResult,
   AuthResult,
   GameExitInfo,
   GameProgress,
   LauncherApi,
+  LauncherConfigResult,
   LauncherSettings,
   PlayResult,
   ProfilesSnapshot,
-  SettingsSnapshot
+  ServerStatus,
+  SettingsSnapshot,
+  SiteAuthResult,
+  VersionsSnapshot
 } from '../shared/types'
 
 const api: LauncherApi = {
@@ -41,6 +46,38 @@ const api: LauncherApi = {
   },
   profiles: {
     list: (): Promise<ProfilesSnapshot> => ipcRenderer.invoke('profiles:list')
+  },
+  versions: {
+    list: (): Promise<VersionsSnapshot> => ipcRenderer.invoke('versions:list')
+  },
+  site: {
+    login: (email: string, password: string): Promise<SiteAuthResult> =>
+      ipcRenderer.invoke('site:login', email, password),
+    restore: (): Promise<SiteAuthResult> => ipcRenderer.invoke('site:restore'),
+    logout: (): Promise<void> => ipcRenderer.invoke('site:logout'),
+    config: (): Promise<LauncherConfigResult> => ipcRenderer.invoke('site:config'),
+    setVersion: (versionId: string): Promise<LauncherConfigResult> =>
+      ipcRenderer.invoke('site:version:set', versionId)
+  },
+  server: {
+    status: (): Promise<ServerStatus> => ipcRenderer.invoke('server:status'),
+    retry: (): Promise<ServerStatus> => ipcRenderer.invoke('server:retry'),
+    onStatus: (callback: (status: ServerStatus) => void) => {
+      const listener = (_event: IpcRendererEvent, status: ServerStatus): void => callback(status)
+      ipcRenderer.on('server:status', listener)
+      return () => ipcRenderer.removeListener('server:status', listener)
+    }
+  },
+  account: {
+    get: (): Promise<AccountResult> => ipcRenderer.invoke('account:get'),
+    addSkin: (): Promise<AccountResult> => ipcRenderer.invoke('account:skin:add'),
+    removeSkin: (id: string): Promise<AccountResult> =>
+      ipcRenderer.invoke('account:skin:remove', id),
+    applySkin: (id: string, variant: 'classic' | 'slim'): Promise<AccountResult> =>
+      ipcRenderer.invoke('account:skin:apply', id, variant),
+    resetSkin: (): Promise<AccountResult> => ipcRenderer.invoke('account:skin:reset'),
+    setCape: (capeId: string | null): Promise<AccountResult> =>
+      ipcRenderer.invoke('account:cape:set', capeId)
   }
 }
 

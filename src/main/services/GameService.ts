@@ -1,9 +1,9 @@
-import { launch, Version } from '@xmcl/core'
+import { launch, Version, type ResolvedVersion } from '@xmcl/core'
 import { getVersionList, installLibrariesTask, installTask } from '@xmcl/installer'
 import { app, BrowserWindow } from 'electron'
 import { mkdirSync } from 'fs'
 import { join } from 'path'
-import { VANILLA_PROFILE_ID } from '../../shared/constants'
+import { DEFAULT_MC_VERSION, VANILLA_PROFILE_ID } from '../../shared/constants'
 import type { GameProgress, PlayResult } from '../../shared/types'
 import { authService } from './AuthService'
 import { downloadDispatcher } from './downloader'
@@ -12,6 +12,7 @@ import { javaService } from './JavaService'
 import { modSyncService } from './ModSyncService'
 import { profileService } from './ProfileService'
 import { settingsService } from './SettingsService'
+import { siteService } from './SiteService'
 
 class GameService {
   private playing = false
@@ -44,17 +45,30 @@ class GameService {
 
       const { ramGb, selectedProfileId } = settingsService.get()
       const modProfile = await profileService.getProfile(selectedProfileId)
+      // Sürümü yönetici siteden belirler; oyuncu değiştiremez. Site hiç
+      // okunamadıysa (ilk açılış + ağ yok) profilin kendi sürümüne düşülür.
+      const enforcedVersion = await siteService.enforcedVersion()
+      const mcVersion = enforcedVersion || modProfile.mcVersion || DEFAULT_MC_VERSION
+      const versionSource = enforcedVersion
+        ? 'sunucu sürümü'
+        : modProfile.mcVersion
+          ? 'profil sürümü — sunucuya ulaşılamadı'
+          : 'son çare sürüm — sunucuya ulaşılamadı, profil de sürüm bildirmiyor'
       const instanceDir = this.instanceDir(modProfile.id)
       console.log(
-        `[game] profil: ${modProfile.name} (${modProfile.id}) / Minecraft ${modProfile.mcVersion}`
+        `[game] profil: ${modProfile.name} (${modProfile.id}) / Minecraft ${mcVersion} (${versionSource})`
       )
 
       send({ phase: 'resolving', label: 'Sürüm bilgileri alınıyor…', percent: null })
       const versionList = await getVersionList()
-      const versionMeta = versionList.versions.find((v) => v.id === modProfile.mcVersion)
+      const versionMeta = versionList.versions.find((v) => v.id === mcVersion)
       if (!versionMeta) {
         throw new Error(
-          `"${modProfile.name}" profilinin istediği Minecraft ${modProfile.mcVersion} sürümü Mojang manifestinde bulunamadı.`
+          enforcedVersion
+            ? `Sunucunun belirlediği Minecraft ${mcVersion} sürümü Mojang manifestinde bulunamadı. Yöneticiye bildir.`
+            : modProfile.mcVersion
+              ? `"${modProfile.name}" profilinin istediği Minecraft ${mcVersion} sürümü Mojang manifestinde bulunamadı.`
+              : `Minecraft ${mcVersion} sürümü Mojang manifestinde bulunamadı.`
         )
       }
 
@@ -76,7 +90,7 @@ class GameService {
       // Fabric profilleri: loader sürüm profili kurulur, Fabric kütüphaneleri indirilir
       // ve oyun vanilla yerine fabric-loader sürümüyle başlatılır.
       if (modProfile.loader === 'fabric') {
-        const fabricId = await fabricService.ensureFabric(this.gameRoot, modProfile.mcVersion, send)
+        const fabricId = await fabricService.ensureFabric(this.gameRoot, mcVersion, send)
         resolved = await Version.parse(this.gameRoot, fabricId)
         const libraryTask = installLibrariesTask(resolved, { dispatcher: downloadDispatcher })
         await libraryTask.startAndWait({
@@ -105,6 +119,14 @@ class GameService {
       const maxMemory = ramGb * 1024
       console.log(`[game] başlatılıyor (RAM: ${ramGb} GB)`)
 
+      // Oyun sunucu listesine değil, doğrudan MCTG sunucusuna girer.
+      // 1.20+ bunu --quickPlayMultiplayer ile yapar; eski sürümler --server/--port.
+      const server = await siteService.serverAddress()
+      const quickPlay = this.supportsQuickPlay(resolved)
+      console.log(
+        `[game] otomatik bağlantı: ${server.host}:${server.port} (${quickPlay ? 'quickPlay' : '--server'})`
+      )
+
       const gameProcess = await launch({
         gamePath: instanceDir,
         resourcePath: this.gameRoot,
@@ -117,6 +139,9 @@ class GameService {
         minMemory: Math.min(2048, maxMemory),
         maxMemory,
         launcherName: 'MCTGLauncher',
+        ...(quickPlay
+          ? { quickPlayMultiplayer: `${server.host}:${server.port}` }
+          : { server: { ip: server.host, port: server.port } }),
         // Launcher kapansa bile oyun yaşamaya devam etsin.
         extraExecOption: { detached: true, stdio: 'ignore' }
       })
@@ -141,6 +166,23 @@ class GameService {
       console.error('[game] başlatma hatası:', err)
       return { ok: false, error: this.friendlyMessage(err) }
     }
+  }
+
+  /**
+   * Sürüm doğrudan sunucuya girmeyi --quickPlayMultiplayer ile destekliyor mu?
+   *
+   * 1.20'den itibaren sürüm JSON'u bu argümanı `is_quick_play_multiplayer`
+   * özelliğine bağlı bir kural olarak taşıyor. Eski sürümlerde argüman hiç
+   * tanınmıyor ve oyun açılışta hata veriyor; onlarda --server/--port kalıyor.
+   * Fabric profilleri vanilya argümanlarını miras aldığı için ayrım aynı çalışır.
+   */
+  private supportsQuickPlay(resolved: ResolvedVersion): boolean {
+    return (resolved.arguments?.game ?? []).some(
+      (argument) =>
+        typeof argument === 'object' &&
+        argument !== null &&
+        (argument.rules ?? []).some((rule) => rule.features?.is_quick_play_multiplayer === true)
+    )
   }
 
   /** UI'ı boğmamak için ilerleme olayları ~120ms aralıkla gönderilir (etiket değişimi hariç). */

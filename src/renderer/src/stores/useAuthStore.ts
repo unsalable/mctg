@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { PlayerSession } from '../../../shared/types'
+import { useUiStore } from './useUiStore'
 
 type AuthStatus = 'booting' | 'loggedOut' | 'authenticating' | 'loggedIn'
 
@@ -10,6 +11,8 @@ interface AuthState {
   restore: () => Promise<void>
   login: () => Promise<void>
   logout: () => Promise<void>
+  /** Skin/pelerin değişince hesap store'u güncel oturumu buraya yazar. */
+  setSession: (session: PlayerSession) => void
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -47,5 +50,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   logout: async () => {
     await window.launcher.auth.logout()
     set({ status: 'loggedOut', session: null, error: null })
-  }
+    // Yeniden giriş yapıldığında launcher ana sekmede açılsın.
+    useUiStore.getState().setTab('home')
+  },
+
+  setSession: (session) => set({ session })
 }))

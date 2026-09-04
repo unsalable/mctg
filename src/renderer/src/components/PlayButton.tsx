@@ -18,11 +18,11 @@ export default function PlayButton({ ui, progress, onClick }: PlayButtonProps) {
       disabled={busy}
       whileHover={busy ? undefined : { scale: 1.03 }}
       whileTap={busy ? undefined : { scale: 0.97 }}
-      className={`group relative flex h-16 w-72 items-center justify-center gap-3 overflow-hidden rounded-2xl transition-shadow ${
+      className={`group relative flex h-[72px] w-full items-center justify-center gap-3 overflow-hidden rounded-2xl transition-shadow ${
         ui === 'preparing'
-          ? 'cursor-default border border-zinc-200 bg-white text-zinc-700 shadow-sm'
+          ? 'cursor-default border border-line bg-surface text-fg shadow-sm'
           : ui === 'running'
-            ? 'cursor-default border border-accent-200 bg-accent-50 text-accent-800'
+            ? 'cursor-default border border-accent-200 bg-accent-50 text-accent-800 dark:border-accent-800 dark:bg-accent-800/20 dark:text-accent-300'
             : 'bg-gradient-to-b from-accent-500 to-accent-600 text-white shadow-[0_10px_32px_-10px_rgba(22,163,74,0.55)] hover:shadow-[0_12px_40px_-10px_rgba(22,163,74,0.7)]'
       }`}
     >
@@ -51,7 +51,7 @@ export default function PlayButton({ ui, progress, onClick }: PlayButtonProps) {
             {progress?.label ?? 'Hazırlanıyor…'}
           </span>
           {percent !== null && (
-            <span className="text-xs font-bold tabular-nums text-accent-700">
+            <span className="text-xs font-bold tabular-nums text-accent-600">
               %{Math.floor(percent)}
             </span>
           )}

@@ -1,13 +1,13 @@
 import os from 'os'
-import { MOD_REPO, VANILLA_PROFILE_ID } from '../../shared/constants'
-import type { LauncherSettings, SettingsSnapshot } from '../../shared/types'
+import { VANILLA_PROFILE_ID } from '../../shared/constants'
+import type { LauncherSettings, SettingsSnapshot, ThemeMode } from '../../shared/types'
 import { store } from './storage'
 
 const SETTINGS_KEY = 'settings'
 const DEFAULT_SETTINGS: LauncherSettings = {
   ramGb: 4,
-  modRepo: MOD_REPO,
-  selectedProfileId: VANILLA_PROFILE_ID
+  selectedProfileId: VANILLA_PROFILE_ID,
+  theme: 'light'
 }
 
 /** Renderer'dan gelen değer güvenilmez kabul edilir; her zaman 2-16 aralığına sıkıştırılır. */
@@ -21,17 +21,21 @@ function cleanString(value: unknown, fallback: string, maxLength: number): strin
   return typeof value === 'string' ? value.trim().slice(0, maxLength) : fallback
 }
 
+function cleanTheme(value: unknown, fallback: ThemeMode): ThemeMode {
+  return value === 'dark' || value === 'light' ? value : fallback
+}
+
 class SettingsService {
   get(): LauncherSettings {
     const saved = store.get<Partial<LauncherSettings>>(SETTINGS_KEY, {})
     return {
       ramGb: clampRam(saved.ramGb ?? DEFAULT_SETTINGS.ramGb),
-      modRepo: MOD_REPO,
       selectedProfileId: cleanString(
         saved.selectedProfileId,
         DEFAULT_SETTINGS.selectedProfileId,
         64
-      )
+      ),
+      theme: cleanTheme(saved.theme, DEFAULT_SETTINGS.theme)
     }
   }
 
@@ -39,11 +43,11 @@ class SettingsService {
     const current = this.get()
     const next: LauncherSettings = {
       ramGb: patch.ramGb !== undefined ? clampRam(patch.ramGb) : current.ramGb,
-      modRepo: MOD_REPO,
       selectedProfileId:
         patch.selectedProfileId !== undefined
           ? cleanString(patch.selectedProfileId, current.selectedProfileId, 64)
-          : current.selectedProfileId
+          : current.selectedProfileId,
+      theme: patch.theme !== undefined ? cleanTheme(patch.theme, current.theme) : current.theme
     }
     store.set(SETTINGS_KEY, next)
     return next
